@@ -25,9 +25,9 @@ It can read multi-sheet Excel workbooks, apply financial formulas, and use LLMs 
 
 ## Project Structure
 
-/agents 
-requirements.txt 
-README.md
+    /agents 
+    requirements.txt 
+    README.md
 ---
 
 ## Installation
