@@ -80,6 +80,7 @@ class FormulaTool:
 
         # remove duplicates and sort
         months = sorted(list({(m.year, m.month): m for m in months}.values()))
+        print("months", months)
         return months
 
     def parse_month_year_single(self, q: str):
@@ -185,6 +186,8 @@ class FormulaTool:
             if df.empty:
                 return {}
             return df.groupby('currency', dropna=False)['amount_usd'].sum().to_dict()
+        
+        print(query)
 
         months_to_use = self.parse_months(query)  # ✅ get all months including ranges
         actuals = self.sheets.get('actuals', pd.DataFrame())
@@ -200,6 +203,7 @@ class FormulaTool:
             df_actuals = self.filter_by_months(_filter_df(actuals, 'actuals', 'revenue'), months_to_use)
             df_budget = self.filter_by_months(_filter_df(budget, 'budget', 'revenue'), months_to_use)
             filtered_rows = pd.concat([df_actuals, df_budget], ignore_index=True)
+            print(filtered_rows)
         elif 'gross margin' in q:
             df_revenue = _apply_fx(self.filter_by_months(_filter_df(actuals, 'actuals', 'revenue'), months_to_use), fx)
             df_cogs = _apply_fx(self.filter_by_months(_filter_df(actuals, 'actuals', 'COGS'), months_to_use), fx)
@@ -221,6 +225,7 @@ class FormulaTool:
                 .agg(amount_orig=('amount', 'sum'), amount_usd=('amount_usd', 'sum'))
             )
             df_pivot = df_grouped.pivot(index='currency', columns='sheet', values='amount_usd').fillna(0).reset_index()
+            print(df_pivot)
 
             lines = []
             for _, row in df_pivot.iterrows():
@@ -229,6 +234,7 @@ class FormulaTool:
                 lines.append(f"- {row['currency'] or 'UNKNOWN'}: Actual {actual:,.2f} USD, Budget {budget_val:,.2f} USD")
 
             result = "\n".join(lines)
+            print("result", result)
         else:
             result = "No rows found for the requested query."
 
@@ -239,6 +245,7 @@ class FormulaTool:
                 .agg(total_usd=("amount_usd", "sum"))
                 .sort_values("month")
             )
+            print("trend", trend_df)
             if "trend" in q or "plot" in q:
                 return {
                     "x": [m.strftime("%b %Y") for m in trend_df["month"]],
@@ -324,7 +331,12 @@ class FinancialAgent:
         res = self.formula_tool.run(question, return_rows=True)
 
         if isinstance(res, dict):
-            return res  # plotting data
+            print("res", res)
+            return {
+            "llm_response": None,
+            "plot_data": res
+        }
+  # plotting data
 
         formula_result, filtered_rows = res
 
@@ -361,10 +373,9 @@ class FinancialAgent:
         response = self.llm.invoke(prompt_text)
 
                 # Optional plotting
+        # Optional plotting
         if "trend" in question.lower() or "plot" in question.lower():
-            months_to_plot = self.formula_tool.parse_months(question)
-            filtered_rows = self.formula_tool.filter_by_months(filtered_rows, months_to_plot)
-            if not filtered_rows.empty and "month" in filtered_rows.columns:
+            if filtered_rows is not None and not filtered_rows.empty and "month" in filtered_rows.columns:
                 trend_df = (
                     filtered_rows.groupby("month", as_index=False)['amount_usd']
                     .sum().sort_values("month")
@@ -380,7 +391,7 @@ class FinancialAgent:
                     }
                 }
 
-        # Default return → always wrap in dict
+
         return {
             "llm_response": response,
             "plot_data": None
