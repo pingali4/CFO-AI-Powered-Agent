@@ -348,7 +348,6 @@ class FinancialAgent:
 
         response = self.llm.invoke(prompt_text)
 
-               
         if "trend" in question.lower() or "plot" in question.lower():
             if filtered_rows is not None and not filtered_rows.empty and "month" in filtered_rows.columns:
                 trend_df = (
