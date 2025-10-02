@@ -25,14 +25,12 @@ It can read multi-sheet Excel workbooks, apply financial formulas, and use LLMs 
 
 ## Project Structure
 
-/agents # Core logic (FormulaTool + FinancialAgent)
-requirements.txt # Python dependencies
-README.md # Project documentation
-
-
+/agents 
+requirements.txt 
+README.md
 ---
 
-## ⚙️ Installation
+## Installation
 
 1. Clone this repo:
    ```bash
@@ -40,10 +38,9 @@ README.md # Project documentation
    cd finn-ai
 2. Create a virtual environment and install dependencies:
     python -m venv venv
-    source venv/bin/activate   # on Mac/Linux
-    venv\Scripts\activate      # on Windows
+    venv\Scripts\activate
 
-pip install -r requirements.txt
+    pip install -r requirements.txt
 
 3. Make sure Ollama
  is installed and running locally with the models you plan to use (e.g., llama3.2, mxbai-embed-large).
