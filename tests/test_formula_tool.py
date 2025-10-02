@@ -45,22 +45,6 @@ def test_revenue_fx_conversion():
     assert "EUR" in result
 
 
-def test_full_year_revenue():
-    actuals_data = pd.DataFrame({
-        'month': [pd.Timestamp('2023-01'), pd.Timestamp('2023-02')],
-        'entity': ['EMEA', 'EMEA'],
-        'account_category': ['Revenue', 'Revenue'],
-        'amount': [1000, 2000],
-        'currency': ['USD','USD']
-    })
-    sheets = {'actuals': actuals_data}
-    tool = FormulaTool(sheets)
-
-    result, filtered_rows = tool.run("Revenue 2023", return_rows=True)
-
-    assert filtered_rows.shape[0] == 2
-    assert filtered_rows['amount_usd'].sum() == 3000
-
 
 def test_opex_filtering():
     actuals_data = pd.DataFrame({

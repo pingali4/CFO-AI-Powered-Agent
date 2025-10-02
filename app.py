@@ -8,15 +8,12 @@ import tempfile
 import os
 
 st.set_page_config(page_title="AI-powered CFO Assistant", layout="wide")
-
-# --- Initialize Agent ---
 @st.cache_resource
 def init_agent():
     return FinancialAgent("fixtures/data.xlsx")
 
 agent = init_agent()
 
-# --- Initialize session state ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "plots" not in st.session_state:
@@ -29,29 +26,23 @@ if st.button("New Chat"):
     st.session_state.plots.clear()
     st.experimental_rerun()
 
-# --- Display previous chat messages ---
 for idx, message in enumerate(st.session_state.messages):
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
-    # Display plot if exists
     if idx < len(st.session_state.plots) and st.session_state.plots[idx] is not None:
         st.pyplot(st.session_state.plots[idx])
 
-# --- Chat input ---
-if prompt := st.chat_input("Ask about finances..."):
-    # Save user message
+if prompt := st.chat_input("Ask about finances"):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # --- Get agent response ---
     response = agent.run(prompt)
     llm_text = response.get("llm_response")
     plot_data = response.get("plot_data")
 
     fig_to_add = None
 
-    # --- Display LLM text ---
     if llm_text:
         formatted_response = ""
         for line in str(llm_text).split("\n"):
@@ -64,7 +55,6 @@ if prompt := st.chat_input("Ask about finances..."):
             st.markdown(formatted_response)
         st.session_state.messages.append({"role": "assistant", "content": formatted_response})
 
-    # --- Display plot ---
     if plot_data:
         fig, ax = plt.subplots(figsize=(8, 4))
         ax.bar(plot_data["x"], plot_data["y"], color="#4CAF50", alpha=0.7)
@@ -79,7 +69,6 @@ if prompt := st.chat_input("Ask about finances..."):
         st.session_state.messages.append({"role": "assistant", "content": "📊 Graph generated."})
         fig_to_add = fig
 
-    # --- Save figure reference for PDF ---
     st.session_state.plots.append(fig_to_add)
 
 def export_chat_pdf(messages, plots):
@@ -96,7 +85,6 @@ def export_chat_pdf(messages, plots):
         safe_content = msg["content"].encode("latin-1", errors="ignore").decode("latin-1")
         pdf.multi_cell(0, 6, f"{role}:\n{safe_content}\n\n")
 
-        # Embed figure if exists
         if plots and i < len(plots) and plots[i] is not None:
             fig = plots[i]
             with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
@@ -106,7 +94,6 @@ def export_chat_pdf(messages, plots):
             os.remove(tmpfile.name)
             pdf.ln(5)
 
-    # ✅ Write PDF to temporary file, then read into BytesIO
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_pdf:
         pdf.output(tmp_pdf.name)
         tmp_pdf.seek(0)
@@ -116,9 +103,7 @@ def export_chat_pdf(messages, plots):
     return pdf_bytes
 
 
-# Example usage after your chat messages are collected
 if st.button("Download Chat as PDF"):
-    # Collect all plots generated in this session, e.g., store them in a list `st.session_state.plots`
     plots_list = st.session_state.get("plots", [None]*len(st.session_state.messages))
     
     pdf_file = export_chat_pdf(st.session_state.messages, plots_list)

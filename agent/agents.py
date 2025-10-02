@@ -24,7 +24,6 @@ class FormulaTool:
         """Return list of datetime objects representing months to use."""
         months = []
 
-        # 1️⃣ Explicit month + year (e.g., "Jan 2024")
         matches = re.findall(
             r"(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|"
             r"aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{4})",
@@ -37,12 +36,10 @@ class FormulaTool:
         for m_name, y in matches:
             months.append(datetime(int(y), month_map[m_name.lower()], 1))
 
-        # 2️⃣ Numeric YYYY-MM or YYYY/MM
         matches2 = re.findall(r"(\d{4})[-/](0?[1-9]|1[0-2])", query)
         for y, m in matches2:
             months.append(datetime(int(y), int(m), 1))
 
-        # 3️⃣ Range: "from Jan 2024 to Mar 2024"
         range_match = re.search(
             r"from\s+([a-zA-Z]+\s+\d{4})\s+to\s+([a-zA-Z]+\s+\d{4})", query, re.IGNORECASE
         )
@@ -64,7 +61,6 @@ class FormulaTool:
                         next_year += 1
                     current = datetime(next_year, next_month, 1)
 
-        # 4️⃣ "last N months"
         last_n_match = re.search(r"last\s+(\d+)\s+months?", query.lower())
         n_months = int(last_n_match.group(1)) if last_n_match else default_last_n
 
@@ -78,13 +74,11 @@ class FormulaTool:
                     year -= 1
                 months.append(datetime(year, month, 1))
 
-        # remove duplicates and sort
         months = sorted(list({(m.year, m.month): m for m in months}.values()))
         print("months", months)
         return months
 
     def parse_month_year_single(self, q: str):
-        """Parse single month-year string like 'Jan 2024' and return (month, year)."""
         match = re.search(r"(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{4})", q, re.IGNORECASE)
         month_map = {"jan":1,"january":1,"feb":2,"february":2,"mar":3,"march":3,"apr":4,"april":4,"may":5,"jun":6,"june":6,"jul":7,"july":7,"aug":8,"august":8,"sep":9,"september":9,"oct":10,"october":10,"nov":11,"november":11,"dec":12,"december":12}
         if match:
@@ -101,7 +95,6 @@ class FormulaTool:
     def run(self, query: str, return_rows: bool = False):
         months_to_use = self.parse_months(query)
         def parse_month_year(q: str):
-            # month/year parsing logic as before
             m, y = None, None
             match = re.search(
                 r"(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|"
@@ -138,36 +131,30 @@ class FormulaTool:
                     out = out.iloc[0:0]
             out['sheet'] = sheet_name
 
-            # 🔑 Normalize "amount" column for consistency
             if 'amount' not in out.columns:
                 if 'cash_usd' in out.columns:
                     out = out.rename(columns={'cash_usd': 'amount'})
                 elif 'value' in out.columns:
                     out = out.rename(columns={'value': 'amount'})
                 else:
-                    # fallback: create an amount column with 0
                     out['amount'] = 0.0
 
             return out
 
 
         def _apply_fx(df, fx_df):
-            """Merge with FX rates and compute USD equivalent."""
 
             if df is None or df.empty:
-                return df  # nothing to do
+                return df  
 
-            # 🔑 If already in USD or no currency column, just copy
             if "currency" not in df.columns or df["currency"].str.upper().eq("USD").all():
                 df["amount_usd"] = df["amount"]
                 return df
 
-            # 🔑 If FX table missing, assume 1.0 rate (no conversion)
             if fx_df is None or fx_df.empty:
                 df["amount_usd"] = df["amount"]
                 return df
 
-            # 🔑 Standard conversion if FX sheet has required columns
             if all(col in fx_df.columns for col in ["currency", "month", "rate_to_usd"]):
                 df = df.merge(
                     fx_df[["currency", "month", "rate_to_usd"]],
@@ -181,11 +168,6 @@ class FormulaTool:
 
             return df
 
-
-        def _summarize(df):
-            if df.empty:
-                return {}
-            return df.groupby('currency', dropna=False)['amount_usd'].sum().to_dict()
         
         print(query)
 
@@ -260,11 +242,9 @@ class FormulaTool:
 
 class FinancialAgent:
     def __init__(self, excel_file: str, embedding_model="mxbai-embed-large", vector_db="./chroma_financial_db", llm_model="llama3.2"):
-        # Load sheets
         self.debug = True
         self.sheets = pd.read_excel(excel_file, sheet_name=None)
 
-        # Initialize embeddings and vector store
         self.embeddings = OllamaEmbeddings(model=embedding_model)
         self.db_location = vector_db
         add_docs = not os.path.exists(vector_db)
@@ -336,11 +316,9 @@ class FinancialAgent:
             "llm_response": None,
             "plot_data": res
         }
-  # plotting data
 
         formula_result, filtered_rows = res
 
-        # Build data_text
         data_text = ""
         if filtered_rows is not None and not filtered_rows.empty:
             for _, row in filtered_rows.iterrows():
@@ -356,7 +334,6 @@ class FinancialAgent:
             data_text = "No matching rows found."
 
 
-        # Prompt
         prompt_text = self.prompt_template.format(
             data_text=data_text,
             formula_result=formula_result,
@@ -369,11 +346,9 @@ class FinancialAgent:
             print("\n[DEBUG] Formula result:")
             print(formula_result)
 
-        # LLM call
         response = self.llm.invoke(prompt_text)
 
-                # Optional plotting
-        # Optional plotting
+               
         if "trend" in question.lower() or "plot" in question.lower():
             if filtered_rows is not None and not filtered_rows.empty and "month" in filtered_rows.columns:
                 trend_df = (
