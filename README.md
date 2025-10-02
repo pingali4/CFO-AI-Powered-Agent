@@ -28,6 +28,9 @@ It can read multi-sheet Excel workbooks, apply financial formulas, and use LLMs 
     /agents 
     requirements.txt 
     README.md
+    /tests
+    app.py
+    /fixtures
 ---
 
 ## Installation
