@@ -7,7 +7,7 @@ st.set_page_config(page_title="AI-powered CFO Assistant")
 # --- Initialize agent ---
 @st.cache_resource
 def init_agent():
-    return FinancialAgent("data.xlsx")
+    return FinancialAgent("fixtures/data.xlsx")
 
 agent = init_agent()
 
